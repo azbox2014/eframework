@@ -1,0 +1,23 @@
+{
+  "name": "eframework",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=dev npm run start",
+    "start": "node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "koa": "^2.8.1",
+    "lodash": "^4.17.15",
+    "log4js": "^5.0.0",
+    "ls-sync": "^0.3.0",
+    "methods": "^1.1.2",
+    "path-to-regexp": "^3.0.0"
+  },
+  "devDependencies": {
+    "cross-env": "^5.2.0"
+  }
+}
