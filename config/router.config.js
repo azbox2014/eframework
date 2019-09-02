@@ -1,3 +1,3 @@
 module.exports = (app, router) => {
-  router("/", app.ctl.index);
+  router.get("/", app.ctl.index.getAction);
 }
