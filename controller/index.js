@@ -6,7 +6,7 @@ module.exports = app => {
 
     async getAction(ctx) {
       const { res, logger, app } = ctx;
-      logger.info({ app: ctx.app});
+      // logger.info({ app: ctx.app});
       let user = await app.models.User.build({
         username: "John",
         nickname: "Idler",

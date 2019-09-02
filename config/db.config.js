@@ -5,6 +5,7 @@ module.exports = {
   database: "eframework",
   username: "azbox",
   password: "Rpi@123",
+  logging: false,
   pool: {
     max: 5,
     min: 1,

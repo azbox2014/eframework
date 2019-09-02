@@ -18,6 +18,7 @@
     "logops": "^2.1.1",
     "mysql2": "^1.6.5",
     "path-to-regexp": "^3.0.0",
+    "rxjs": "^6.5.2",
     "sequelize": "^5.16.0",
     "uuid": "^3.3.3"
   },
