@@ -9,8 +9,8 @@ Model(ctx);
 from(_.keys(ctx.models))
   .pipe(
     map(name => ctx.models[name]),
-    mergeMap(async model => Observable.create(ob => {
-      let res = model.sync({ force: true });
+    mergeMap(model => Observable.create(async ob => {
+      let res = await model.sync({ force: true });
       ob.next(res);
       ob.complete();
     }))
