@@ -1,6 +1,9 @@
 
-class BaseParse {
+class BaseParser {
   getBook() {}
-  getChapterList() {}
+  getCListNextUrl() {}
+  getCList() {}
   getChapter() {}
 }
+
+module.exports = BaseParser;

@@ -1,5 +1,7 @@
+const glob = require("glob");
+const path = require("path");
 const { Subject, Observable } = require("rxjs");
-const { map, mergeMap } = require("rxjs/operator");
+const { map, mergeMap } = require("rxjs/operators");
 
 class Engine {
   constructor(ctx) {
@@ -11,6 +13,19 @@ class Engine {
     this.endClk = ctx.endClk;
     // let parserName = this.task.url.replace(/^https?:\/\/|\/[^\.]*$/g, "");
     // this.parser = ctx.parser[parserName];
+  }
+
+  _load_parser() {
+    let self = this;
+    let root = path.resolve(process.cwd(), "scrapy/engine/parser");
+    self.parser = {};
+    glob
+      .sync("**/*.js", { cwd: root })
+      .forEach(filePath => {
+        let lastName = filePath.replace(/^\.\/|\.js$/g, '');
+        let Parser = require(path.resolve(root, filePath));
+        self.parser[lastName] = new Parser();
+      });
   }
 
   _init_chain() {
@@ -43,8 +58,13 @@ class Engine {
       $input.subscribe(
         async task => {
           let res = await self.axios.get(task.url, { headers: task.headers });
+          let $ = self.jquery.load(res.data);
           if (task.type == "book") {
-            // let book = self.
+            task.result = task.parser.getBook($);
+          } else if(task.type == "clist") {
+            task.result = task.parser.getChapterList($);
+          } else if(task.type == "chapter") {
+            task.result = task.parser.getChapter($);
           } else {
             observer.next(task);
           }
