@@ -1,18 +1,14 @@
 const glob = require("glob");
 const path = require("path");
-const { Subject, Observable } = require("rxjs");
+const { Subject, Observable, of } = require("rxjs");
 const { map, mergeMap } = require("rxjs/operators");
 
 class Engine {
-  constructor(ctx) {
-    this.logger = ctx.logger;
-    this.axios = ctx.axios;
-    this.jquery = ctx.jquery;
+  constructor(app) {
+    this.app = app;
+    this.logger = app.logger;
     this.$reactor = new Subject();
-    this.parser = ctx.parser;
-    this.endClk = ctx.endClk;
-    // let parserName = this.task.url.replace(/^https?:\/\/|\/[^\.]*$/g, "");
-    // this.parser = ctx.parser[parserName];
+    this._load_parser();
   }
 
   _load_parser() {
@@ -24,7 +20,7 @@ class Engine {
       .forEach(filePath => {
         let lastName = filePath.replace(/^\.\/|\.js$/g, '');
         let Parser = require(path.resolve(root, filePath));
-        self.parser[lastName] = new Parser();
+        self.parser[lastName] = new Parser(self.app);
       });
   }
 
@@ -33,7 +29,12 @@ class Engine {
     self.$reactor
       .pipe(
         self._parser(),
-        self._scrapy()
+        mergeMap(task => {
+          return of(task).pipe(
+            task.parser.mapBList(),
+            task.parser.mapBook()
+          )
+        })
       )
       .subscribe(
         this._save,
@@ -58,13 +59,18 @@ class Engine {
       $input.subscribe(
         async task => {
           let res = await self.axios.get(task.url, { headers: task.headers });
-          let $ = self.jquery.load(res.data);
           if (task.type == "book") {
-            task.result = task.parser.getBook($);
+            task.result = task.parser.getBook(res.data);
           } else if(task.type == "clist") {
-            task.result = task.parser.getChapterList($);
+            task.result = task.parser.getCList(res.data);
+            let nextUrl = task.parser.getCListNextUrl(res.data);
+            while (nextUrl) {
+              res = await self.axios.get(nextUrl, { headers: task.headers });
+              task.result.push(...task.parser.getCList(res.data));
+              nextUrl = task.parser.getCListNextUrl(res.data);
+            }
           } else if(task.type == "chapter") {
-            task.result = task.parser.getChapter($);
+            task.result = task.parser.getChapter(res.data);
           } else {
             observer.next(task);
           }

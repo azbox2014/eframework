@@ -29,7 +29,7 @@ module.exports = ({ logger }) => {
     if (_axios._referer) {
       config.headers["referer"] = _axios._referer;
     }
-    logger.info({ "headers": config.headers });
+    // logger.info({ "headers": config.headers });
     return config;
   }, function (error) {
     return Promise.reject(error);

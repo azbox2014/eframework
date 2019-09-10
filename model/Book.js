@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes) => {
     author: STRING(45),
     desc: TEXT,
     status: INTEGER.UNSIGNED,  // 1.  上架; 2. 部分下架;  3. 部分上架;   4. 下架
-    remark: TEXT,
+    remark: DataTypes.JSON,
     created_time: DATE,
     updated_titme: DATE
   });
