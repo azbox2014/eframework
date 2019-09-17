@@ -64,20 +64,28 @@ class Parser extends BaseParser {
     );
   }
   mapBook() {
-    let self = this;
-    let { app, _, url, jquery, ScrapyTask, Axios, Rx, RxOp } = self;
-    let axios = Axios(app);
-    return $input => $input.pipe(
-      RxOp.mergeMap(task => {
-        return Rx.Observable.create(async observer => {
-          let book = await app.models.Book.create(task.extra);
-          // let res = await axios.get(task.url);
-          // let $ = jquery.load(res.data);
-          observer.next(book);
-          observer.complete();
-        });
-      })
-    );
+    // let self = this;
+    // let { app, _, url, jquery, ScrapyTask, Axios, Rx, RxOp } = self;
+    // let axios = Axios(app);
+    return $input => $input
+      .pipe(
+        RxOp.map(task => {
+          task.extra = {
+            book: task.extra,
+            clist_url: task.url
+          };
+          return task
+        })
+        // RxOp.mergeMap(task => {
+        //   return Rx.Observable.create(async observer => {
+        //     // let book = await app.models.Book.create(task.extra);
+        //     // // let res = await axios.get(task.url);
+        //     // // let $ = jquery.load(res.data);
+        //     observer.next(task.extra);
+        //     observer.complete();
+        //   });
+        // })
+      );
   }
   mapCList(content) { }
   mapChapter(content) { }

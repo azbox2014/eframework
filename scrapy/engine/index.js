@@ -1,13 +1,14 @@
 const glob = require("glob");
 const path = require("path");
-const { Subject, Observable, of } = require("rxjs");
-const { map, mergeMap } = require("rxjs/operators");
+const Rx = require("rxjs");
+const ScrapyTask = require("../Task");
+const RxOp = require("rxjs/operators");
 
 class Engine {
   constructor(app) {
     this.app = app;
     this.logger = app.logger;
-    this.$reactor = new Subject();
+    this.$reactor = new Rx.Subject();
     this._load_parser();
   }
 
@@ -29,10 +30,16 @@ class Engine {
     self.$reactor
       .pipe(
         self._parser(),
-        mergeMap(task => {
-          return of(task).pipe(
+        RxOp.mergeMap(task => {
+          return Rx.of(task).pipe(
             task.parser.mapBList(),
-            task.parser.mapBook()
+            task.parser.mapBook(),
+            self._saveBook()
+          )
+        }),
+        RxOp.mergeMap(task => {
+          return Rx.of(task).pipe(
+
           )
         })
       )
@@ -46,39 +53,33 @@ class Engine {
   _parser() {
     let self = this;
     return $input => $input.pipe(
-      map(task => {
+      RxOp.map(task => {
         let parserName = this.task.url.replace(/^https?:\/\/|\/[^\.]*$/g, "");
         task.parser = self.parser[parserName];
       })
     );
   }
 
-  _scrapy() {
-    let self = this;
-    return $input => Observable.create(observer => {
-      $input.subscribe(
-        async task => {
-          let res = await self.axios.get(task.url, { headers: task.headers });
-          if (task.type == "book") {
-            task.result = task.parser.getBook(res.data);
-          } else if(task.type == "clist") {
-            task.result = task.parser.getCList(res.data);
-            let nextUrl = task.parser.getCListNextUrl(res.data);
-            while (nextUrl) {
-              res = await self.axios.get(nextUrl, { headers: task.headers });
-              task.result.push(...task.parser.getCList(res.data));
-              nextUrl = task.parser.getCListNextUrl(res.data);
+  _saveBook() {
+    let { app } = this;
+    return $input => $input.pipe(
+      RxOp.mergeMap(task => {
+        return Rx.Observable.create(async observer => {
+          let book = await app.models.Book.create(task.extra.book);
+          let _task = new ScrapyTask({
+            url: task.extra.clist_url,
+            type: "clist",
+            parser: task.parser,
+            headers: {},
+            extra: {
+              book_id: book.id
             }
-          } else if(task.type == "chapter") {
-            task.result = task.parser.getChapter(res.data);
-          } else {
-            observer.next(task);
-          }
-        },
-        err => observer.error(err),
-        () => observer.complete()
-      );
-    });
+          });
+          observer.next(_task);
+          observer.complete();
+        });
+      })
+    );
   }
 
   _save(task) {
