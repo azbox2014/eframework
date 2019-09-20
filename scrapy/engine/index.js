@@ -10,6 +10,7 @@ class Engine {
     this.logger = app.logger;
     this.$reactor = new Rx.Subject();
     this._load_parser();
+    this._init_chain();
   }
 
   _load_parser() {
@@ -34,12 +35,14 @@ class Engine {
           return Rx.of(task).pipe(
             task.parser.mapBList(),
             task.parser.mapBook(),
-            self._saveBook()
+            self._saveBook(),
           )
         }),
         RxOp.mergeMap(task => {
           return Rx.of(task).pipe(
-
+            task.parser.mapCList(),
+            task.parser.mapChapter(),
+            self._saveChapter()
           )
         })
       )
@@ -54,8 +57,9 @@ class Engine {
     let self = this;
     return $input => $input.pipe(
       RxOp.map(task => {
-        let parserName = this.task.url.replace(/^https?:\/\/|\/[^\.]*$/g, "");
+        let parserName = task.url.replace(/^https?:\/\/|\/.*$/g, "");
         task.parser = self.parser[parserName];
+        return task;
       })
     );
   }
@@ -82,11 +86,26 @@ class Engine {
     );
   }
 
-  _save(task) {
-    //
+  _saveChapter() {
+    let { app } = this;
+    return input$ => input$.pipe(
+      RxOp.mergeMap(task => {
+        return Rx.Observable.create(async observer => {
+          let chapter = await app.models.Chapter.create(task.extra.chapter);
+          observer.next(chapter);
+          observer.complete();
+        });
+      })
+    );
   }
 
-  _error() { }
+  _save(res) {
+    console.log({id: res.id, title: res.title, book_id: res.book_id});
+  }
+
+  _error(err) {
+    console.log(err);
+  }
 
   _complete() {
     if (this.endClk) {

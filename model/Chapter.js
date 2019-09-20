@@ -6,9 +6,10 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true,
       autoIncrement: true,
     },
+    book_id: BIGINT.UNSIGNED,
     title: STRING(45),
-    author: STRING(45),
-    desc: TEXT,
+    content: TEXT,
+    idx: INTEGER.UNSIGNED,
     status: INTEGER.UNSIGNED,  // 1.  上架; 2. 部分下架;  3. 部分上架;   4. 下架
     remark: DataTypes.JSON,
     created_time: DATE,

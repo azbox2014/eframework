@@ -4,12 +4,14 @@ const { map, mergeMap } = require("rxjs/operators");
 const Model = require("../../lib/model");
 const ScrapyTask = require("../../scrapy/Task");
 const Parser = require("../../scrapy/engine/parser/mm.remenxs.com.js");
+const Engine = require("../../scrapy/engine");
 
 let app = {
   logger: require("logops")
 };
 Model(app);
 
+let engine = new Engine(app);
 let parser = new Parser(app);
 
 let task = new ScrapyTask({
@@ -24,7 +26,8 @@ Observable.create(observer => {
   observer.complete();
 }).pipe(
   parser.mapBList(),
-  parser.mapBook()
+  parser.mapBook(),
+  engine._saveBook()
 ).subscribe({
   next: res => {
     count++;
