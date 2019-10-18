@@ -29,14 +29,12 @@ module.exports = ({ logger }) => {
     if (_axios._referer) {
       config.headers["referer"] = _axios._referer;
     }
-    // logger.info({ "headers": config.headers });
     return config;
   }, function (error) {
     return Promise.reject(error);
   });
 
   _axios.interceptors.response.use(function (response) {
-    // logger.info(response);
     return response;
   }, function (error) {
     return Promise.reject(error);
