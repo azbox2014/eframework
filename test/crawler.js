@@ -62,12 +62,17 @@ class BookCrawler extends EventEmitter {
       self.crawler.queue({
         uri: urls.detailUrl,
         callback: (err, res) => {
-          if (isSamePage) {
-            let { book, nextOpt } = self.options.onBook();
-          }
-
           if (err) chapterSubject.error(err);
-          else if (res.statusCode == 200) chapterSubject.next(res);
+          else if (res.statusCode == 200) {
+            (async () => {
+              let { book, nextOpt } = await self.options.onBook(res);
+              if (isSamePage) {
+                let { chapters, nextOpt } = await self.options.onChapters(res);
+                chapterSubject.next({ book, chapters });
+              }
+            })();
+            chapterSubject.next(res);
+          }
           else chapterSubject.error(res);
         }
       });
@@ -78,7 +83,7 @@ class BookCrawler extends EventEmitter {
     //
   }
 
-  _fn_crawler_chapter() {}
+  _fn_crawler_chapter() { }
 }
 
 let crawler = new Crawler({
