@@ -65,7 +65,7 @@ class BookCrawler extends EventEmitter {
           if (err) chapterSubject.error(err);
           else if (res.statusCode == 200) {
             (async () => {
-              let { book, nextOpt } = await self.options.onBook(res);
+              let book = await self.options.onBook(res);
               if (isSamePage) {
                 let { chapters_url, nextOpt } = await self.options.onChapters(res);
                 chapterSubject.next({ book, chapters_url });
