@@ -1,9 +1,85 @@
-let _ = require("lodash");
-let URL = require("url");
-let Rx = require("rxjs");
-let RxOp = require("rxjs/operators");
-let JQuery = require("cheerio");
-let Crawler = require("crawler");
+const _ = require("lodash");
+const URL = require("url");
+const Rx = require("rxjs");
+const RxOp = require("rxjs/operators");
+const JQuery = require("cheerio");
+const Crawler = require("crawler");
+const EventEmitter = require("events");
+
+
+
+class BookCrawler extends EventEmitter {
+  constructor(options) {
+    super();
+    let self = this;
+    let defaultOptions = {
+      rateLimit: 2000,
+      maxConnections: 1,
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36",
+      entryUrl: "",
+      onBooks: () => { },
+      onBook: () => { },
+      onChapters: () => { },
+      onChapter: () => { }
+    };
+    self.crewler = new Crawler({
+
+    });
+    self.runner = new Rx.Subject();
+    self.options = _.assign({}, defaultOptions, options);
+  }
+
+  start() {
+    let self = this;
+    self.runner.pipe(
+      RxOp.mergeMap(res => {
+        let { urls, nextOpt } = self.options.onBooks(res);
+        nextOpt && self._fn_crawler_books(nextOpt);
+        return Rx.from(urls);
+      }),
+      self._fn_crawler_book()
+    );
+  }
+
+  _fn_crawler_books(url) {
+    let self = this;
+    self.crawler.queue({
+      uri: url,
+      callback: (err, res) => {
+        if (err) self.runner.error(err);
+        else if (res.statusCode == 200) self.runner.next(res);
+        else self.runner.error(res);
+      }
+    });
+  }
+
+  _fn_crawler_book(urls) {
+    let self = this;
+    let isSamePage = urls.detailUrl == urls.chaptersUrl;
+    let chapterSubject = new Rx.Subject();
+    chapterSubject.pipe();
+    if (!isSamePage) {
+      self.crawler.queue({
+        uri: urls.detailUrl,
+        callback: (err, res) => {
+          if (isSamePage) {
+            let { book, nextOpt } = self.options.onBook();
+          }
+
+          if (err) chapterSubject.error(err);
+          else if (res.statusCode == 200) chapterSubject.next(res);
+          else chapterSubject.error(res);
+        }
+      });
+    }
+  }
+
+  _fn_crawler_chapters(subject, url) {
+    //
+  }
+
+  _fn_crawler_chapter() {}
+}
 
 let crawler = new Crawler({
   rateLimit: 2000,
