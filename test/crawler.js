@@ -37,7 +37,7 @@ class BookCrawler extends EventEmitter {
         nextOpt && self._fn_crawler_books(nextOpt);
         return Rx.from(urls);
       }),
-      self._fn_crawler_book()
+      RxOp.mergeMap(url => self._fn_crawler_book(url))
     );
     self._fn_crawler_books(self.options.entryUrl);
   }
@@ -54,9 +54,8 @@ class BookCrawler extends EventEmitter {
     });
   }
 
-  _fn_crawler_book(urls) {
+  _fn_crawler_book(url) {
     let self = this;
-    let isSamePage = urls.detailUrl == urls.chaptersUrl;
     let chapterSubject = new Rx.Subject();
     chapterSubject.pipe();
     if (!isSamePage) {
