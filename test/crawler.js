@@ -39,6 +39,7 @@ class BookCrawler extends EventEmitter {
       }),
       self._fn_crawler_book()
     );
+    self._fn_crawler_books(self.options.entryUrl);
   }
 
   _fn_crawler_books(url) {
