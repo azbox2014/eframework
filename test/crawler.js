@@ -67,8 +67,11 @@ class BookCrawler extends EventEmitter {
             (async () => {
               let { book, nextOpt } = await self.options.onBook(res);
               if (isSamePage) {
-                let { chapters, nextOpt } = await self.options.onChapters(res);
-                chapterSubject.next({ book, chapters });
+                let { chapters_url, nextOpt } = await self.options.onChapters(res);
+                chapterSubject.next({ book, chapters_url });
+                self._fn_crawler_chapters(chapterSubject, book, nextOpt);
+              } else {
+                self._fn_crawler_chapters(chapterSubject, book, urls.chaptersUrl);
               }
             })();
             chapterSubject.next(res);
@@ -79,7 +82,7 @@ class BookCrawler extends EventEmitter {
     }
   }
 
-  _fn_crawler_chapters(subject, url) {
+  _fn_crawler_chapters(subject, book, url) {
     //
   }
 
