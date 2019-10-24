@@ -55,31 +55,29 @@ class BookCrawler extends EventEmitter {
   }
 
   _fn_crawler_book(url) {
-    let self = this;
+     let self = this;
     let chapterSubject = new Rx.Subject();
     chapterSubject.pipe();
-    if (!isSamePage) {
       self.crawler.queue({
-        uri: urls.detailUrl,
-        callback: (err, res) => {
-          if (err) chapterSubject.error(err);
-          else if (res.statusCode == 200) {
-            (async () => {
-              let book = await self.options.onBook(res);
-              if (isSamePage) {
-                let { chapters_url, nextOpt } = await self.options.onChapters(res);
-                chapterSubject.next({ book, chapters_url });
-                self._fn_crawler_chapters(chapterSubject, book, nextOpt);
-              } else {
-                self._fn_crawler_chapters(chapterSubject, book, urls.chaptersUrl);
-              }
-            })();
-            chapterSubject.next(res);
-          }
-          else chapterSubject.error(res);
+        uri: url,
+        llback: (err, res) => {
+        if (err) chapterSubject.error(err);
+          se if (res.statusCode == 200) {
+            sync () => {
+            let book = await self.options.onBook(res);
+               (isSamePage) {
+              let { chapters_url, nextOpt } = await self.options.onChapters(res);
+              chapterSubject.next({ book, chapters_url });
+              self._fn_crawler_chapters(chapterSubject, book, nextOpt);
+              else {
+              self._fn_crawler_chapters(chapterSubject, book, urls.chaptersUrl);
+            }
+          })();
+          chapterSubject.next(res);
         }
-      });
-    }
+        else chapterSubject.error(res);
+      }
+    });
   }
 
   _fn_crawler_chapters(subject, book, url) {
