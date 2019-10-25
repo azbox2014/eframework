@@ -55,33 +55,50 @@ class BookCrawler extends EventEmitter {
   }
 
   _fn_crawler_book(url) {
-     let self = this;
-    let chapterSubject = new Rx.Subject();
-    chapterSubject.pipe();
+    let self = this;
+    let idx = 1;
+    return Rx.Observable.create(observer => {
       self.crawler.queue({
         uri: url,
-        llback: (err, res) => {
-        if (err) chapterSubject.error(err);
-          se if (res.statusCode == 200) {
-            sync () => {
-            let book = await self.options.onBook(res);
-               (isSamePage) {
-              let { chapters_url, nextOpt } = await self.options.onChapters(res);
-              chapterSubject.next({ book, chapters_url });
-              self._fn_crawler_chapters(chapterSubject, book, nextOpt);
-              else {
-              self._fn_crawler_chapters(chapterSubject, book, urls.chaptersUrl);
-            }
-          })();
-          chapterSubject.next(res);
+        callback: (err, res) => {
+          if (err) observer.error(err);
+          else if (res.statusCode == 200) {
+            (async () => {
+              let { book, chaptersEntryUrl } = await self.options.onBook(res);
+              // 如果返回的章节页面链接为false，那么表示详情页与章节页是同一个页面
+              if (!chaptersEntryUrl) {
+                let { chapter_url_list, nextOpt } = await self.options.onChapters(res);
+                observer.next({ bid: book.id, chapter_url_list });
+                self._fn_crawler_chapters(observer, book, nextOpt);
+              } else {
+                self._fn_crawler_chapters(observer, book, chaptersEntryUrl);
+              }
+            })();
+          }
+          else observer.error(res);
         }
-        else chapterSubject.error(res);
-      }
-    });
+      });
+    }).pipe(
+      RxOp.map(({ bid, chapter_url_list }) => _(chapter_url_list).map(chapter_url => _.assign({}, { bid, chapter_url, idx: idx++ }).value())),
+      RxOp.mergeMap(chapter_info_list => Rx.from(chapter_info_list))
+    );
   }
 
-  _fn_crawler_chapters(subject, book, url) {
-    //
+  _fn_crawler_chapters(observer, book, url) {
+    self.crawler.queue({
+      uri: url,
+      callback: (err, res) => {
+        if (err) observer.error(err);
+        else if (res.statusCode == 200) {
+          (async () => {
+            let { chapter_url_list, nextOpt } = await self.options.onChapters(res);
+            observer.next({ bid: book.id, chapter_url_list });
+            self._fn_crawler_chapters(observer, book, nextOpt);
+          })();
+        }
+        else observer.error(res);
+      }
+    });
   }
 
   _fn_crawler_chapter() { }
