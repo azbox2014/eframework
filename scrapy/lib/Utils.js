@@ -5,4 +5,4 @@ class UtilsFunc {
   }
 }
 
-module.exports = Utils;
+module.exports = UtilsFunc;
