@@ -17,6 +17,7 @@ class HttpManager {
   }
 
   request({ rule, url, clk }) {
+    console.log(rule, url);
     let self = this;
     httpManager.limiters.key(rule.bookSourceUrl).schedule(() => {
       let axios = self.axios_list[rule.bookSourceUrl];
@@ -42,7 +43,8 @@ class HttpManager {
 
 let httpManager = new HttpManager();
 
-module.exports = rule => input$ => Rx.Observable.create(observer => {
+
+httpOperator = rule => input$ => Rx.Observable.create(observer => {
   input$.subscribe(url => {
     let times = 50;
     let func = () => {
@@ -65,3 +67,43 @@ module.exports = rule => input$ => Rx.Observable.create(observer => {
     func();
   });
 });
+
+module.exports = httpOperator;
+
+if (require.module == module) {
+  let rule = {
+    "bookSourceGroup": "优",
+    "bookSourceName": "16K小说网™备用",
+    "bookSourceType": "TEXT",
+    "bookSourceUrl": "https://www.16kxsw.com",
+    "enable": true,
+    "httpUserAgent": "",
+    "ruleBookAuthor": "class.bq@tag.span.1@text#作者",
+    "ruleBookContent": "id.articlecontent@textNodes",
+    "ruleBookName": "class.introduce@tag.h1@text",
+    "ruleChapterList": "class.ml_list@tag.li",
+    "ruleChapterName": "tag.a@text",
+    "ruleChapterUrl": "class.cataloglink@tag.p.0@tag.a@href",
+    "ruleChapterUrlNext": "",
+    "ruleContentUrl": "tag.a@href",
+    "ruleContentUrlNext": "",
+    "ruleCoverUrl": "class.pic@tag.img.0@src",
+    "ruleFindUrl": "",
+    "ruleIntroduce": "class.jj@text",
+    "ruleSearchAuthor": "class.p1@tag.a@text||tag.td.2@text",
+    "ruleSearchCoverUrl": "class.pic@tag.img@src",
+    "ruleSearchKind": "tag.td.4@text",
+    "ruleSearchLastChapter": "tag.td.1@text",
+    "ruleSearchList": "class.tt||class.grid@tag.tr!0",
+    "ruleSearchName": "tag.h3@tag.a@text||tag.td.0@text",
+    "ruleSearchNoteUrl": "tag.h3@tag.a@href||tag.td.0@tag.a@href",
+    "ruleSearchUrl": "http://www.16kxsw.com/modules/article/search.php?searchkey=searchKey|char=gbk",
+    "serialNumber": 0,
+    "weight": 36
+  };
+  Rx
+    .of("https://www.baidu.com")
+    .pipe(
+      httpOperator(rule)
+    ).subscribe(console.log, console.error);
+}
