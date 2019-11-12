@@ -48,7 +48,17 @@ module.exports = rule => input$ => Rx.Observable.create(observer => {
     let func = () => {
       httpManager.request({
         rule, url, clk: (err, data) => {
-          //
+          if (err) {
+            if (times > 0) {
+              func();
+              return;
+            } else {
+              observer.error(err);
+            }
+          } else {
+            observer.next(data);
+          }
+          observer.complete();
         }
       });
     };
