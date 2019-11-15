@@ -17,11 +17,10 @@ class HttpManager {
   }
 
   request({ rule, url, clk }) {
-    console.log(rule, url);
     let self = this;
-    httpManager.limiters.key(rule.bookSourceUrl).schedule(() => {
+    self.limiters.key(rule.bookSourceUrl).schedule(() => {
       let axios = self.axios_list[rule.bookSourceUrl];
-      if (axios) {
+      if (!axios) {
         self.axios_list[rule.bookSourceUrl] = Axios.create({
           baseURL: rule.bookSourceUrl,
           timeout: 2000,
@@ -31,13 +30,11 @@ class HttpManager {
         });
         axios = self.axios_list[rule.bookSourceUrl];
       }
-      return new Promise((resolve, reject) => {
-        axios
-          .get(url)
-          .then(res => { clk(null, res); resolve(); })
-          .catch(err => { clk(err, null); reject(); });
-      });
-    });
+      return axios.get(url);
+    }).then(
+      res => clk(null, res),
+      err => clk(err, null)
+    ).catch(err => clk(err, null));;
   }
 }
 
@@ -49,18 +46,15 @@ httpOperator = rule => input$ => Rx.Observable.create(observer => {
     let times = 50;
     let func = () => {
       httpManager.request({
-        rule, url, clk: (err, data) => {
-          if (err) {
-            if (times > 0) {
-              func();
-              return;
-            } else {
-              observer.error(err);
-            }
+        rule, url, clk: (err, res) => {
+          if (err && times > 0) {
+            times--;
+            func();
           } else {
-            observer.next(data);
+            if (err) observer.error(err);
+            else observer.next(res.data);
+            observer.complete();
           }
-          observer.complete();
         }
       });
     };
@@ -70,7 +64,7 @@ httpOperator = rule => input$ => Rx.Observable.create(observer => {
 
 module.exports = httpOperator;
 
-if (require.module == module) {
+if (require.main == module) {
   let rule = {
     "bookSourceGroup": "优",
     "bookSourceName": "16K小说网™备用",
