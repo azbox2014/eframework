@@ -7,3 +7,7 @@ let doBookInfoOperator = rule => input$ => input$.pipe(
         let analyse = '';
     })
 );
+
+if (require.main == module) {
+    console.log('ll');
+}
