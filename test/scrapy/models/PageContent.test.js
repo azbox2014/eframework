@@ -4,17 +4,17 @@ describe('页面内容结构测试', () => {
     let ctx = {}
     let pageContent = null;
 
-    it.skip('测试创建对象', () => {
+    it('测试创建对象', () => {
         expect(pageContent.getHtml()).toEqual(ctx.html);
     });
 
-    it.skip('测试ChDom', () => {
+    it('测试ChDom', () => {
         let $ = pageContent.getCHDOM();
         // console.log(pageContent.getCHDOM());
         expect($("title").text()).toEqual("test1");
     });
 
-    it.skip('测试xpath', () => {
+    it('测试xpath', () => {
         const xpath = require('xpath');
         let xpdom = pageContent.getXPath();
         // console.log(xpdom);
@@ -26,10 +26,16 @@ describe('页面内容结构测试', () => {
         expect(orange_linode[0].nodeValue).toEqual("Orange");
     });
 
-    it.skip('测试XsDom', () => {
+    it('测试XsDom', () => {
         let xsdom = pageContent.getXsDom();
         expect(xsdom.xpath("//body/ul/li[2]/text()").value()).toEqual("Orange")
         expect(xsdom.css(".pear").attr("class")).toEqual("pear");
+    });
+
+    it('测试JSDOM', () => {
+        let dom = pageContent.getJSDOM();
+        // console.log(dom.window.abc);
+        expect(dom.window.abc).toEqual(5);
     });
 
     beforeEach(() => {
@@ -53,6 +59,9 @@ describe('页面内容结构测试', () => {
                 <li class="orange">Orange</li>
                 <li class="pear">Pear</li>
             </ul>
+            <script>
+                var abc = 5;
+            </script>
         </body>
         </html>
         `;
