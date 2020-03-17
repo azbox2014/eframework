@@ -20,13 +20,13 @@
     "glob": "^7.1.4",
     "lodash": "^4.17.15",
     "logops": "^2.1.1",
-    "mysql2": "^1.6.5",
-    "path-to-regexp": "^3.0.0",
+    "mysql2": "^2.1.0",
+    "path-to-regexp": "^6.1.0",
     "rxjs": "^6.5.2",
     "sequelize": "^5.16.0",
-    "uuid": "^3.3.3"
+    "uuid": "^7.0.2"
   },
   "devDependencies": {
-    "cross-env": "^5.2.0"
+    "cross-env": "^7.0.2"
   }
 }
