@@ -7,23 +7,25 @@
     "dev": "cross-env NODE_ENV=dev npm run start",
     "start": "node lib/app.js",
     "db_init": "node cmd/db_init.js",
-    "scrapy": "node scrapy"
+    "scrapy": "node scrapy",
+    "t7": "cross-env NODE_ENV=dev node test/t7.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "axios": "^0.19.0",
+    "bookshelf": "^1.1.0",
     "bottleneck": "^2.19.5",
     "cheerio": "^1.0.0-rc.3",
-    "crawler": "^1.2.1",
     "express": "^4.17.1",
     "glob": "^7.1.4",
+    "knex": "^0.20.13",
     "lodash": "^4.17.15",
     "logops": "^2.1.1",
-    "mysql2": "^1.6.5",
+    "mysql": "^2.18.1",
     "path-to-regexp": "^3.0.0",
     "rxjs": "^6.5.2",
-    "sequelize": "^5.16.0",
+    "sqlite3": "^4.1.1",
     "uuid": "^3.3.3"
   },
   "devDependencies": {
