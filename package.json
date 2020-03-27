@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "cross-env NODE_ENV=dev npm run start",
-    "start": "node lib/entry.js",
+    "start": "node lib/app.js",
     "db_init": "node cmd/db_init.js",
     "scrapy": "node scrapy"
   },
