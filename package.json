@@ -4,11 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "cross-env NODE_ENV=dev npm run start",
-    "start": "node lib/app.js",
-    "db_init": "node cmd/db_init.js",
-    "scrapy": "node scrapy",
-    "t7": "cross-env NODE_ENV=dev node test/t7.js"
+    "devclean": "npx rimraf db.sqlite",
+    "devdb": "npx yarn devclean && cross-env NODE_ENV=dev npx yarn dbinit",
+    "dev": "cross-env NODE_ENV=dev npx yarn serve",
+    "serve": "node lib/app.js",
+    "dbinit": "node dbinitialize",
+    "scrapy": "node scrapy"
   },
   "author": "",
   "license": "ISC",
@@ -29,6 +30,7 @@
     "uuid": "^3.3.3"
   },
   "devDependencies": {
-    "cross-env": "^5.2.0"
+    "cross-env": "^5.2.0",
+    "rimraf": "^3.0.2"
   }
 }
