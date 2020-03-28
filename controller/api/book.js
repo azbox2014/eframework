@@ -5,7 +5,7 @@ module.exports = app => {
     }
 
     async getAction(ctx) {
-      const { res} = ctx;
+      const { res } = ctx;
       res.send("99");
     }
   }

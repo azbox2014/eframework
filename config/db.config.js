@@ -20,7 +20,7 @@ const dev = {
 }
 
 let dbConfig = null;
-if(process.env.NODE_ENV === "dev") {
+if (process.env.NODE_ENV === "dev") {
   dbConfig = dev;
 } else {
   dbConfig = prod;
