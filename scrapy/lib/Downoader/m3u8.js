@@ -118,7 +118,13 @@ class m3u8Downloader {
       }
       const tsObj = tsList[index];
       Utils.log(`start download ts${tsObj.index}`);
-      Axios.get(tsObj.url, { timeout: 100000 }).then(res => {
+      Axios.get(
+        tsObj.url,
+        { 
+          responseType: "arraybuffer",
+          timeout: 100000 
+        }
+      ).then(res => {
         if (res.status === 200) {
           fs.writeFile(tsObj.file, res.data, (error2) => {
             if (error2) {
