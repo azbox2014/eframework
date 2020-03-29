@@ -6,16 +6,18 @@ module.exports = app => {
 
     async getAction(ctx) {
       const { res, logger, app } = ctx;
-      // logger.info({ app: ctx.app});
-      // let user = await app.models.User.build({
-      //   username: "John",
-      //   nickname: "Idler",
-      //   avatar: "xx",
-      //   phone: "18681817262",
-      //   gender: 1,
-      //   status: 1,
-      // });
-      // user.save();
+      app.model.Book
+        .forge({
+          title: "title",
+          author: "author",
+          cover: "cover",
+          desc: "desc"
+        })
+        .save()
+        .then(res => {
+          logger.info("保存成功");
+          console.log(res);
+        });
       res.send("99");
     }
 
