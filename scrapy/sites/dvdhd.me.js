@@ -25,40 +25,110 @@ let videoList$ = Rx.Observable.create(cb => {
   }).catch(err => cb.error(err));
 });
 
-let m3u8Url$ = Rx.observable.create(cb => {
-  
+let m3u8Url$ = Rx.Observable.create(cb => {
+  let videoList = [];
+  videoList$.subscribe(
+    it => videoList.push(it),
+    err => cb.error(cb),
+    () => {
+      const checkList = () => {
+        if(videoList.length === 0) {
+          cb.complete();
+        } else {
+          setTimeout(checkList, 1000);
+        }
+      }
+      checkList();
+    }
+  )
+
+  const startParse = () => {
+    const callback = (vInfo) => {
+      if (vInfo) {
+        Axios.get(vInfo.url).then(
+          res => {
+            let selDom = Selector.load(res.data);
+            cb.next({ ...vInfo, vUrl: selDom.regexp(/var url = "([^"]*)";/) });
+            console.log(vInfo.title + " m3u8 url complete.");
+            let _vInfo = videoList.shift();
+            callback(_vInfo);
+          },
+          aerr => {
+            console.log("Request " + vInfo.title + " m3u8 failed");
+            videoList.push(vInfo);
+          }
+        ).catch(cb.error);
+      } else {
+        cb.complete();
+      }
+    };
+
+    let videoInfo = videoList.shift();
+    callback(videoInfo);
+  }
+
+  const checkList = () => {
+    if (videoList.length > 0) {
+      console.log("Start parse m3u8 url...");
+      startParse();
+    } else {
+      setTimeout(checkList, 1000);
+    }
+  }
+  checkList();
 });
 
 Rx.Observable.create(cb => {
-  let videoList = []
+  let m3u8List = []
 
-  videoList$.subscribe({
-    next: it => videoList.push(it),
+  m3u8Url$.subscribe({
+    next: it => m3u8List.push(it),
     complete: () => {
-      const callback = (err) => {
-        if (err) {
-          cb.error(err);
+      const checkList = () => {
+        if (m3u8List.length == 0) {
+          cb.complete();
         } else {
-          let videoInfo = videoList.shift();
-          if (videoInfo) {
-            Downloader.download({
-              url: videoInfo.url,
-              filePath: Path.resolve(__dirname, "video"),
-              filmName: videoInfo.title,
-              callback
-            });
-          } else {
-            cb.complete();
-          }
+          setTimeout(checkList, 1000);
         }
       }
-      let videoInfo = videoList.shift();
-      Downloader.download({
-        url: videoInfo.url,
-        filePath: Path.resolve(__dirname, "video"),
-        filmName: videoInfo.title,
-        callback
-      })
+      checkList();
     }
   });
+
+  const startDownload = () => {
+    const callback = (err) => {
+      if (err) {
+        cb.error(err);
+      } else {
+        let m3u8Info = m3u8List.shift();
+        console.log("download " + m3u8Info.title);
+        if (m3u8Info) {
+          Downloader.download({
+            url: m3u8Info.vUrl,
+            filePath: Path.resolve(__dirname, "video"),
+            filmName: m3u8Info.title,
+            callback
+          });
+        }
+      }
+    }
+    let m3u8Info = m3u8List.shift();
+    console.log("download " + m3u8Info.title);
+    Downloader.download({
+      url: m3u8Info.vUrl,
+      filePath: Path.resolve(__dirname, "video"),
+      filmName: m3u8Info.title,
+      callback
+    })
+  };
+
+  const checkList = () => {
+    if (m3u8List.length > 0) {
+      console.log("Start download video....")
+      startDownload();
+    } else {
+      setTimeout(checkList, 1000);
+    }
+  };
+  checkList();
 }).subscribe(console.log);
