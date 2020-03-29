@@ -3,6 +3,7 @@ const Selector = require("xselector");
 const Axios = require("../lib/axios");
 const Rx = require("rxjs");
 const RxOp = require("rxjs/operators");
+const Path = require("path");
 const Url = require("url");
 
 const M3u8Downloader = require("../lib/Downoader/m3u8");
@@ -17,11 +18,15 @@ let videoList$ = Rx.Observable.create(cb => {
       let el = Selector.load(el_str);
       cb.next({
         title: el.text(),
-        url: Url.resolve(baseUrl, el.attr("href"))
+        url: Url.resolve(baseUrl, el.xpath("/a/@href").value())
       });
     });
     cb.complete();
   }).catch(err => cb.error(err));
+});
+
+let m3u8Url$ = Rx.observable.create(cb => {
+  
 });
 
 Rx.Observable.create(cb => {
@@ -38,6 +43,7 @@ Rx.Observable.create(cb => {
           if (videoInfo) {
             Downloader.download({
               url: videoInfo.url,
+              filePath: Path.resolve(__dirname, "video"),
               filmName: videoInfo.title,
               callback
             });
@@ -49,6 +55,7 @@ Rx.Observable.create(cb => {
       let videoInfo = videoList.shift();
       Downloader.download({
         url: videoInfo.url,
+        filePath: Path.resolve(__dirname, "video"),
         filmName: videoInfo.title,
         callback
       })

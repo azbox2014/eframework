@@ -120,20 +120,20 @@ class m3u8Downloader {
       Utils.log(`start download ts${tsObj.index}`);
       Axios.get(tsObj.url, { timeout: 100000 }).then(res => {
         if (res.status === 200) {
-          fs.writeFile(tsObj.file, buff, (error2) => {
+          fs.writeFile(tsObj.file, res.data, (error2) => {
             if (error2) {
-              Utils.logError(`download failed ts${tsObj.index} error:${error2.message}`);
+              Utils.logError("download failed ts" + tsObj.index + ", error:" + error2.message);
               downloadTs(index);
             } else {
               downloadedNum++;
-              Utils.log(`download ts${tsObj.index} sucess,downloaded ${downloadedNum}/remain${tsCount - downloadedNum}`);
+              Utils.log("download ts" + tsObj.index + " sucess,downloaded " + downloadedNum + ", remain: " + (tsCount - downloadedNum));
               checkIfDone();
               downloadTs(index + processNum);
             }
           });
         }
-      }, err => {
-        Utils.logError(`download failed ts${tsObj.index}error:${error.message}`);
+      }, error => {
+        Utils.logError("download failed ts" + tsObj.index + ",error:" + error.message);
         downloadTs(index);
       });
     }
@@ -226,11 +226,10 @@ class m3u8Downloader {
     }
 
     if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir);
+      fs.mkdirSync(dir, { recursive: true });
     }
     Axios.get(url).then(res => {
-      console.log(_.keys(res));
-      // parseM3U8(res.data.body);
+      parseM3U8(res.data);
     }, err => {
       if (err) {
         Utils.logError(`problem with request: ${err.message}`);
