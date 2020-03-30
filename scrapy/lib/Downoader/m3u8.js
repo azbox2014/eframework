@@ -72,7 +72,7 @@ class m3u8Downloader {
       opts.callback(err);
     }
 
-    function parseM3U8(content, callback) {
+    function parseM3U8(content) {
       Utils.log('starting parsing m3u8 file');
       tsList = content.match(/((http|https):\/\/.*)|(.+\.ts)/g);
       if (!tsList) {
@@ -105,26 +105,38 @@ class m3u8Downloader {
         };
         tsOutPuts.push(tsOut);
       }
-      batchDownload(callback);
+      batchDownload();
     }
 
-    function batchDownload(callback) {
+    function batchDownload() {
+      let doneList = [];
+      let unDoList = _.range(0, tsCount);
+
+      const doCallback = (id, isDo = true) => {
+        if (isDo) {
+          doneList.push(id);
+        } else {
+          unDoList.push(id);
+        }
+        let doId = unDoList.shift();
+        if (doId >= 0) {
+          downloadTs(doId, doCallback);
+        } else {
+          convertTS();
+        }
+      }
       for (let i = 0; i < processNum; i++) {
-        downloadTs(i);
+        downloadTs(i, doCallback);
       }
     }
 
-    function downloadTs(index) {
-      if (index >= tsCount) {
-        return;
-      }
+    function downloadTs(index, callback) {
       const tsObj = tsList[index];
       Utils.log(`start download ts${tsObj.index}`);
       if (fs.existsSync(tsObj.file)) {
         downloadedNum++;
         Utils.log("download ts" + tsObj.index + " sucess,downloaded " + downloadedNum + ", remain: " + (tsCount - downloadedNum));
-        checkIfDone();
-        downloadTs(index + processNum);
+        callback(index);
       } else {
         Axios
           .get(tsObj.url, { responseType: "arraybuffer", timeout: 100000 })
@@ -133,18 +145,17 @@ class m3u8Downloader {
               fs.writeFile(tsObj.file, res.data, (error2) => {
                 if (error2) {
                   Utils.logError("download failed ts" + tsObj.index + ", error:" + error2.message);
-                  downloadTs(index);
+                  callback(index, false);
                 } else {
                   downloadedNum++;
                   Utils.log("download ts" + tsObj.index + " sucess,downloaded " + downloadedNum + ", remain: " + (tsCount - downloadedNum));
-                  checkIfDone();
-                  downloadTs(index + processNum);
+                  callback(index);
                 }
               });
             }
           }, error => {
             Utils.logError("download failed ts" + tsObj.index + ",error:" + error.message);
-            downloadTs(index);
+            callback(index, false);
           });
       }
     }
