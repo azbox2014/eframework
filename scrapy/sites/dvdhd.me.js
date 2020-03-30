@@ -59,7 +59,7 @@ let m3u8Url$ = Rx.Observable.create(cb => {
           }
         ).catch(cb.error);
       } else {
-        cb.complete();
+        checkList();
       }
     };
 
@@ -101,14 +101,16 @@ Rx.Observable.create(cb => {
         cb.error(err);
       } else {
         let m3u8Info = m3u8List.shift();
-        console.log("download " + m3u8Info.title);
         if (m3u8Info) {
+          console.log("download " + m3u8Info.title);
           Downloader.download({
             url: m3u8Info.vUrl,
             filePath: Path.resolve(__dirname, "video"),
             filmName: m3u8Info.title,
             callback
           });
+        } else {
+          checkList();
         }
       }
     }
@@ -127,7 +129,7 @@ Rx.Observable.create(cb => {
       console.log("Start download video....")
       startDownload();
     } else {
-      setTimeout(checkList, 1000);
+      setTimeout(checkList, 500);
     }
   };
   checkList();

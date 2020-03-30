@@ -1,3 +1,5 @@
+const PinYin = require("pinyin");
+const Rm = require("rimraf");
 const Axios = require('../axios');
 const _ = require("lodash");
 const fs = require('fs');
@@ -118,30 +120,33 @@ class m3u8Downloader {
       }
       const tsObj = tsList[index];
       Utils.log(`start download ts${tsObj.index}`);
-      Axios.get(
-        tsObj.url,
-        { 
-          responseType: "arraybuffer",
-          timeout: 100000 
-        }
-      ).then(res => {
-        if (res.status === 200) {
-          fs.writeFile(tsObj.file, res.data, (error2) => {
-            if (error2) {
-              Utils.logError("download failed ts" + tsObj.index + ", error:" + error2.message);
-              downloadTs(index);
-            } else {
-              downloadedNum++;
-              Utils.log("download ts" + tsObj.index + " sucess,downloaded " + downloadedNum + ", remain: " + (tsCount - downloadedNum));
-              checkIfDone();
-              downloadTs(index + processNum);
+      if (fs.existsSync(tsObj.file)) {
+        downloadedNum++;
+        Utils.log("download ts" + tsObj.index + " sucess,downloaded " + downloadedNum + ", remain: " + (tsCount - downloadedNum));
+        checkIfDone();
+        downloadTs(index + processNum);
+      } else {
+        Axios
+          .get(tsObj.url, { responseType: "arraybuffer", timeout: 100000 })
+          .then(res => {
+            if (res.status === 200) {
+              fs.writeFile(tsObj.file, res.data, (error2) => {
+                if (error2) {
+                  Utils.logError("download failed ts" + tsObj.index + ", error:" + error2.message);
+                  downloadTs(index);
+                } else {
+                  downloadedNum++;
+                  Utils.log("download ts" + tsObj.index + " sucess,downloaded " + downloadedNum + ", remain: " + (tsCount - downloadedNum));
+                  checkIfDone();
+                  downloadTs(index + processNum);
+                }
+              });
             }
+          }, error => {
+            Utils.logError("download failed ts" + tsObj.index + ",error:" + error.message);
+            downloadTs(index);
           });
-        }
-      }, error => {
-        Utils.logError("download failed ts" + tsObj.index + ",error:" + error.message);
-        downloadTs(index);
-      });
+      }
     }
 
     function checkIfDone() {
@@ -161,7 +166,7 @@ class m3u8Downloader {
       if (mp4Num === mp4DoneNum) {
         concatMP4();
       } else {
-        const outPutMP4 = `${dir}/output${index}.mp4`;
+        const outPutMP4 = path.join(dir, "output" + index + ".mp4");
         const strConcat = toConcat[index].join('|');
         if (strConcat !== '') {
           if (fs.existsSync(outPutMP4)) {
@@ -182,15 +187,14 @@ class m3u8Downloader {
     }
 
     function concatMP4() {
-      const lastMP4 = `${dir}/${filmName}.mp4`;
+      const lastMP4 = path.join(dir, filmName + ".mp4");
       if (mp4Num > 1) {
-        let filelist = '';
+        let filelist = [];
         for (let i = 0; i < mp4Num; i++) {
-          filelist += `file output${i}.mp4 \n`;
+          filelist.push(path.join(dir, `output${i}.mp4`));
         }
-        const filePath = path.join(dir, 'filelist.txt');
-        fs.writeFileSync(filePath, filelist);
-        const cmd = `ffmpeg -f concat -i ${filePath} -c copy ${lastMP4}`;
+        let sfiles = filelist.join("|");
+        const cmd = `ffmpeg -i "concat:${sfiles}" -y -c copy ${lastMP4}`;
         exec(cmd, (error) => {
           if (error) {
             Utils.logError(`ffmpeg mp4ALL error: ${error.message}`);
@@ -211,37 +215,43 @@ class m3u8Downloader {
     }
 
     function deleteTS() {
-      const cmd = `rm -rf ${dir}/*.ts ${dir}/output*.mp4 ${dir}/filelist.txt`;
-      exec(cmd, (error) => {
-        if (error) {
-          Utils.logError(`delete ts error: ${error.message}`);
-          exit(error);
-        }
+      try {
+        Rm.sync(path.join(dir, "*.ts"));
+        Rm.sync(path.join(dir, "output*.mp4"));
+        Rm.sync(path.join(dir, "filelist.txt"));
         Utils.log('@@@success@@@');
         opts.callback();
-      });
+      } catch (error) {
+        exit(error);
+      }
     }
 
     maxPN = opts.processNum || maxPN;
     url = opts.url;
     if (opts.filmName) {
-      filmName = opts.filmName;
+      filmName = PinYin(opts.filmName, { style: PinYin.STYLE_TONE2 }).flat().join("");
       dir = path.join(opts.filePath, filmName);
     } else {
       dir = path.join(opts.filePath, md5(url));
     }
 
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    Axios.get(url).then(res => {
-      parseM3U8(res.data);
-    }, err => {
-      if (err) {
-        Utils.logError(`problem with request: ${err.message}`);
-        opts.callback(err);
+    if (fs.existsSync(path.join(dir, filmName + ".mp4"))) {
+      Utils.log('@@@success@@@');
+      opts.callback();
+    } else {
+
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
       }
-    });
+      Axios.get(url).then(res => {
+        parseM3U8(res.data);
+      }, err => {
+        if (err) {
+          Utils.logError(`problem with request: ${err.message}`);
+          opts.callback(err);
+        }
+      });
+    }
   }
 }
 
