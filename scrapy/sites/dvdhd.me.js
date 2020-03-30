@@ -21,27 +21,28 @@ let videoList$ = Rx.Observable.create(cb => {
         url: Url.resolve(baseUrl, el.xpath("/a/@href").value())
       });
     });
+    cb.next(false);
     cb.complete();
   }).catch(err => cb.error(err));
 });
 
 let m3u8Url$ = Rx.Observable.create(cb => {
   let videoList = [];
+  let allCount = 0;
+  let doneCount = 0;
+  let isFinish = false;
+
   videoList$.subscribe(
-    it => videoList.push(it),
-    err => cb.error(cb),
-    () => {
-      let checkTimes = 50;
-      const checkList = () => {
-        if (videoList.length === 0 && checkTimes === 0) {
-          cb.complete();
-        } else {
-          checkTimes--;
-          setTimeout(checkList, 1000);
-        }
+    it => {
+      if (it) {
+        videoList.push(it);
+        allCount++;
+      } else {
+        cb.next(false);
+        isFinish = true;
       }
-      checkList();
-    }
+    },
+    err => cb.error(cb)
   )
 
   const startParse = () => {
@@ -49,6 +50,7 @@ let m3u8Url$ = Rx.Observable.create(cb => {
       if (vInfo) {
         Axios.get(vInfo.url).then(
           res => {
+            doneCount++;
             let selDom = Selector.load(res.data);
             cb.next({ ...vInfo, vUrl: selDom.regexp(/var url = "([^"]*)";/) });
             console.log(vInfo.title + " m3u8 url complete.");
@@ -74,31 +76,38 @@ let m3u8Url$ = Rx.Observable.create(cb => {
       console.log("Start parse m3u8 url...");
       startParse();
     } else {
-      setTimeout(checkList, 1000);
+      if ((allCount > doneCount) || !isFinish) {
+        setTimeout(checkList, 1000);
+      } else {
+        cb.complete();
+      }
     }
   }
   checkList();
 });
 
 Rx.Observable.create(cb => {
-  let m3u8List = []
+  let m3u8List = [];
+  let allCount = 0;
+  let doneCount = 0;
+  let isFinish = false;
 
-  m3u8Url$.subscribe({
-    next: it => m3u8List.push(it),
-    complete: () => {
-      const checkList = () => {
-        if (m3u8List.length == 0) {
-          cb.complete();
-        } else {
-          setTimeout(checkList, 1000);
-        }
+  m3u8Url$.subscribe(it => {
+    if (it) {
+      m3u8List.push(it);
+      allCount++;
+    } else {
+      cb.next(false);
+      isFinish = true;
+      if (doneCount === allCount) {
+        cb.complete();
       }
-      checkList();
     }
-  });
+  }, cb.error);
 
   const startDownload = () => {
     const callback = (err) => {
+      doneCount++;
       if (err) {
         cb.error(err);
       } else {
@@ -128,10 +137,14 @@ Rx.Observable.create(cb => {
 
   const checkList = () => {
     if (m3u8List.length > 0) {
-      console.log("Start download video....")
+      console.log("Start download video....");
       startDownload();
     } else {
-      setTimeout(checkList, 500);
+      if ((allCount > doneCount) || !isFinish) {
+        setTimeout(checkList, 500);
+      } else {
+        cb.complete();
+      }
     }
   };
   checkList();
