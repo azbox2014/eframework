@@ -97,7 +97,7 @@ class m3u8Downloader {
             tsList[i] = urlPath + tsList[i];
           }
         }
-        const tsOut = `${dir}/${i}.ts`;
+        const tsOut = path.join(dir, `${i}.ts`);
         tsList[i] = {
           index: i,
           url: tsList[i],
@@ -110,23 +110,41 @@ class m3u8Downloader {
 
     function batchDownload() {
       let doneList = [];
+      let doingList = [];
       let unDoList = _.range(0, tsCount);
+      let isConvert = false;
 
-      const doCallback = (id, isDo = true) => {
-        if (isDo) {
-          doneList.push(id);
+      const checkAllDone = () => {
+        if ((tsCount - (doneList.length + unDoList.length)) === 0) {
+          if (!isConvert) {
+            isConvert = true;
+            convertTS();
+          }
         } else {
-          unDoList.push(id);
+          setTimeout(checkAllDone, 500);
+        }
+      }
+
+      const runingMachine = (id = -1, isDo = true) => {
+        Utils.log("doing task: " + JSON.stringify(doingList));
+        if (id >= 0) {
+          doingList = _.remove(doingList, it => (it == id));
+          if (isDo) {
+            doneList.push(id);
+          } else {
+            unDoList.push(id);
+          }
         }
         let doId = unDoList.shift();
         if (doId >= 0) {
-          downloadTs(doId, doCallback);
+          doingList.push(doId);
+          downloadTs(doId, runingMachine);
         } else {
-          convertTS();
+          checkAllDone();
         }
       }
       for (let i = 0; i < processNum; i++) {
-        downloadTs(i, doCallback);
+        runingMachine();
       }
     }
 
@@ -188,10 +206,11 @@ class m3u8Downloader {
             if (error) {
               Utils.logError(`ffmpeg mp4 ${index} error: ${error.message}`);
               doConvert(index);
+            } else {
+              Utils.log(`ffmpeg mp4 ${index} success`);
+              mp4DoneNum++;
+              doConvert(index + 1);
             }
-            Utils.log(`ffmpeg mp4 ${index} success`);
-            mp4DoneNum++;
-            doConvert(index + 1);
           });
         }
       }
