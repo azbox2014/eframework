@@ -31,10 +31,12 @@ let m3u8Url$ = Rx.Observable.create(cb => {
     it => videoList.push(it),
     err => cb.error(cb),
     () => {
+      let checkTimes = 50;
       const checkList = () => {
-        if(videoList.length === 0) {
+        if (videoList.length === 0 && checkTimes === 0) {
           cb.complete();
         } else {
+          checkTimes--;
           setTimeout(checkList, 1000);
         }
       }
