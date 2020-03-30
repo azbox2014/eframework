@@ -21,31 +21,24 @@ let videoList$ = Rx.Observable.create(cb => {
         url: Url.resolve(baseUrl, el.xpath("/a/@href").value())
       });
     });
-    cb.next(false);
     cb.complete();
   }).catch(err => cb.error(err));
 });
 
 let m3u8Url$ = Rx.Observable.create(cb => {
   let videoList = [];
-  let allCount = 0;
-  let doneCount = 0;
-  let isFinish = false;
-
   videoList$.subscribe(
     it => {
-      if (it) {
-        videoList.push(it);
-        allCount++;
-      } else {
-        cb.next(false);
-        isFinish = true;
-      }
+      videoList.push(it);
     },
-    err => cb.error(cb)
+    err => cb.error(cb),
+    () => {
+      startParse();
+    }
   )
 
   const startParse = () => {
+    console.log("Start parse m3u8 url...");
     const callback = (vInfo) => {
       if (vInfo) {
         Axios.get(vInfo.url).then(
@@ -63,49 +56,29 @@ let m3u8Url$ = Rx.Observable.create(cb => {
           }
         ).catch(cb.error);
       } else {
-        checkList();
+        cb.complete();
       }
     };
 
     let videoInfo = videoList.shift();
     callback(videoInfo);
   }
-
-  const checkList = () => {
-    if (videoList.length > 0) {
-      console.log("Start parse m3u8 url...");
-      startParse();
-    } else {
-      if ((allCount > doneCount) || !isFinish) {
-        setTimeout(checkList, 1000);
-      } else {
-        cb.complete();
-      }
-    }
-  }
-  checkList();
 });
 
 Rx.Observable.create(cb => {
   let m3u8List = [];
-  let allCount = 0;
-  let doneCount = 0;
-  let isFinish = false;
-
-  m3u8Url$.subscribe(it => {
-    if (it) {
+  m3u8Url$.subscribe(
+    it => {
       m3u8List.push(it);
-      allCount++;
-    } else {
-      cb.next(false);
-      isFinish = true;
-      if (doneCount === allCount) {
-        cb.complete();
-      }
+    },
+    cb.error,
+    () => {
+      startDownload();
     }
-  }, cb.error);
+  );
 
   const startDownload = () => {
+    console.log("Start download video....");
     const callback = (err) => {
       doneCount++;
       if (err) {
@@ -121,7 +94,7 @@ Rx.Observable.create(cb => {
             callback
           });
         } else {
-          checkList();
+          cb.complete();
         }
       }
     }
@@ -134,18 +107,4 @@ Rx.Observable.create(cb => {
       callback
     })
   };
-
-  const checkList = () => {
-    if (m3u8List.length > 0) {
-      console.log("Start download video....");
-      startDownload();
-    } else {
-      if ((allCount > doneCount) || !isFinish) {
-        setTimeout(checkList, 500);
-      } else {
-        cb.complete();
-      }
-    }
-  };
-  checkList();
 }).subscribe(console.log);
