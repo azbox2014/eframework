@@ -28,13 +28,9 @@ let videoList$ = Rx.Observable.create(cb => {
 let m3u8Url$ = Rx.Observable.create(cb => {
   let videoList = [];
   videoList$.subscribe(
-    it => {
-      videoList.push(it);
-    },
-    err => cb.error(cb),
-    () => {
-      startParse();
-    }
+    it => videoList.push(it),
+    cb.error,
+    () => startParse()
   )
 
   const startParse = () => {
@@ -43,7 +39,6 @@ let m3u8Url$ = Rx.Observable.create(cb => {
       if (vInfo) {
         Axios.get(vInfo.url).then(
           res => {
-            doneCount++;
             let selDom = Selector.load(res.data);
             cb.next({ ...vInfo, vUrl: selDom.regexp(/var url = "([^"]*)";/) });
             console.log(vInfo.title + " m3u8 url complete.");
@@ -68,19 +63,14 @@ let m3u8Url$ = Rx.Observable.create(cb => {
 Rx.Observable.create(cb => {
   let m3u8List = [];
   m3u8Url$.subscribe(
-    it => {
-      m3u8List.push(it);
-    },
+    it => m3u8List.push(it),
     cb.error,
-    () => {
-      startDownload();
-    }
+    () => startDownload()
   );
 
   const startDownload = () => {
     console.log("Start download video....");
     const callback = (err) => {
-      doneCount++;
       if (err) {
         cb.error(err);
       } else {

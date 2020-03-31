@@ -10,11 +10,11 @@ const path = require('path');
 
 const Utils = {
   log(str) {
-    console.log(str);
+    console.log(Date.now(), str);
   },
 
   logError(str) {
-    console.error(str);
+    console.error(Date.now(), str);
   },
 
   exit() {
@@ -127,6 +127,7 @@ class m3u8Downloader {
 
       const runingMachine = (id = -1, isDo = true) => {
         Utils.log("doing task: " + JSON.stringify(doingList));
+        Utils.log("undo task: " + JSON.stringify(unDoList));
         if (id >= 0) {
           doingList = _.remove(doingList, it => (it == id));
           if (isDo) {
@@ -157,7 +158,7 @@ class m3u8Downloader {
         callback(index);
       } else {
         Axios
-          .get(tsObj.url, { responseType: "arraybuffer", timeout: 100000 })
+          .get(tsObj.url, { responseType: "arraybuffer", timeout: 10000 })
           .then(res => {
             if (res.status === 200) {
               fs.writeFile(tsObj.file, res.data, (error2) => {
