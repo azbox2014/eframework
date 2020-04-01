@@ -10,7 +10,11 @@
     "serve": "node lib/app.js",
     "dbinit": "node dbinitialize",
     "scrapy": "node scrapy",
-    "jm": "node scrapy/sites/dvdhd.me.js"
+    "jm": "node scrapy/sites/dvdhd.me.js",
+    "test": "jest"
+  },
+  "jest": {
+    "testRegex": "test/.*.test.js$"
   },
   "author": "",
   "license": "ISC",
@@ -19,8 +23,10 @@
     "bookshelf": "^1.1.0",
     "bottleneck": "^2.19.5",
     "cheerio": "^1.0.0-rc.3",
+    "crypto-js": "^4.0.0",
     "express": "^4.17.1",
     "glob": "^7.1.4",
+    "jest": "^25.2.4",
     "knex": "^0.20.13",
     "lodash": "^4.17.15",
     "logops": "^2.1.1",
