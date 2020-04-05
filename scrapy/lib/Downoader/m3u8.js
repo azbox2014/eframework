@@ -248,7 +248,7 @@ class m3u8Downloader {
     function deleteTS() {
       try {
         Rm.sync(path.join(dir, "*.ts"));
-        Rm.sync(path.join(dir, "output*.mp4"));
+        // Rm.sync(path.join(dir, "output*.mp4"));
         Rm.sync(path.join(dir, "filelist.txt"));
         Utils.log('@@@success@@@');
         opts.callback();
