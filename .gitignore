@@ -3,6 +3,5 @@ package-lock.json
 .vscode
 yarn.lock
 db.sqlite
-scrapy/sites/**video
-scrapy/sites/**di4*ji2**
-scrapy/lib/TaskManager.js
+scrapy/sites/
+!scrapy/sites/*.js
