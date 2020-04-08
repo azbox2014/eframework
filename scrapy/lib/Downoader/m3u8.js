@@ -19,28 +19,13 @@ const Utils = {
 
   exit() {
     throw new Error('exit');
-  },
-
-  arrayChunk(arr, num) {
-    let c = arr.length / num;
-    if (arr.length % num > 0) {
-      c++;
-    }
-    const result = [];
-    for (let i = 0; i < c; i++) {
-      const a = arr.splice(0, num);
-      if (a.length > 0) {
-        result.push(a);
-      }
-    }
-    return result;
   }
 }
 
 class m3u8Downloader {
   constructor() {
     this.maxPN = 15;
-    this.processNum = 0;
+    this.processNum = 15;
     this.tsCount = 0;
     this.tsList = [];
     this.tsOutPuts = [];
@@ -48,11 +33,14 @@ class m3u8Downloader {
     this.url = '';
     this.dir = '';
     this.filmName = 'result';
+    this.preCount = 17;
+    this.sufCount = 16;
     Axios.setUserAgent("pc");
   }
 
   download(opts) {
-    let { maxPN,
+    let {
+      maxPN,
       processNum,
       tsCount,
       tsList,
@@ -60,6 +48,8 @@ class m3u8Downloader {
       downloadedNum,
       url,
       dir,
+      preCount,
+      sufCount,
       filmName
     } = this;
 
@@ -81,9 +71,6 @@ class m3u8Downloader {
         return;
       }
       tsCount = tsList.length;
-      if (tsCount > 0) {
-        processNum = tsCount > maxPN ? maxPN : tsCount;
-      }
       tsOutPuts = [];
       const urlObj = URL.parse(url);
       const host = `${urlObj.protocol}//${urlObj.host}`;
@@ -105,17 +92,21 @@ class m3u8Downloader {
         };
         tsOutPuts.push(tsOut);
       }
+      if (tsCount > 0) {
+        processNum = tsCount > maxPN ? maxPN : tsCount;
+      }
       batchDownload();
     }
 
     function batchDownload() {
       let doneList = [];
-      let doingList = [];
-      let unDoList = _.range(0, tsCount);
+      let undoList = _.range(preCount, tsCount - sufCount);
+      let allList = _.range(preCount, tsCount - sufCount);
+      let downCount = tsCount - preCount - sufCount;
       let isConvert = false;
 
       const checkAllDone = () => {
-        if ((tsCount - (doneList.length + unDoList.length)) === 0) {
+        if ((downCount - (doneList.length + undoList.length)) === 0) {
           if (!isConvert) {
             isConvert = true;
             convertTS();
@@ -126,23 +117,12 @@ class m3u8Downloader {
       }
 
       const runingMachine = (id = -1, isDo = true) => {
-        Utils.log("doing task: " + JSON.stringify(doingList));
-        Utils.log("undo task: " + JSON.stringify(unDoList));
+        Utils.log("download ts -> doing task: " + JSON.stringify(_.without(allList, ..._.concat(undoList, doneList))));
         if (id >= 0) {
-          doingList = _.remove(doingList, it => (it == id));
-          if (isDo) {
-            doneList.push(id);
-          } else {
-            unDoList.push(id);
-          }
+          isDo ? doneList.push(id) : undoList.push(id);
         }
-        let doId = unDoList.shift();
-        if (doId >= 0) {
-          doingList.push(doId);
-          downloadTs(doId, runingMachine);
-        } else {
-          checkAllDone();
-        }
+        let doId = undoList.shift();
+        doId >= 0 ? downloadTs(doId, runingMachine) : checkAllDone();
       }
       for (let i = 0; i < processNum; i++) {
         runingMachine();
@@ -179,60 +159,77 @@ class m3u8Downloader {
       }
     }
 
-    function checkIfDone() {
-      if (downloadedNum === tsCount) {
-        convertTS();
-      }
-    }
-
     function convertTS() {
-      toConcat = Utils.arrayChunk(tsOutPuts, 100);
+      toConcat = _.chunk(_.slice(tsOutPuts, preCount, tsCount - sufCount), 100);
       Utils.log('concat ts to mp4');
       mp4Num = toConcat.length;
-      doConvert(0);
+
+      let doneList = [];
+      let undoList = _.range(0, mp4Num);
+      let allList = _.range(0, mp4Num);
+      let unFinish = true;
+
+      const checkAllDone = () => {
+        if (unFinish && (mp4Num === (doneList.length + undoList.length))) {
+          unFinish = false;
+          concatMP4();
+        } else {
+          setTimeout(checkAllDone, 100);
+        }
+      }
+
+      const runingMachine = (id = -1, isDone = false) => {
+        Utils.log("convert ts -> doing task: " + JSON.stringify(_.without(allList, ..._.concat(undoList, doneList))));
+        if (id >= 0) {
+          if (isDone) doneList.push(id);
+          else undoList.push(id);
+        }
+        let doId = undoList.shift();
+        doId >= 0 ? doConvert(doId, runingMachine) : checkAllDone();
+      }
+
+      runingMachine();
+      runingMachine();
     }
 
-    function doConvert(index) {
-      if (mp4Num === mp4DoneNum) {
-        concatMP4();
-      } else {
-        const outPutMP4 = path.join(dir, "output" + index + ".mp4");
-        const strConcat = toConcat[index].join('|');
-        if (strConcat !== '') {
-          if (fs.existsSync(outPutMP4)) {
-            fs.unlinkSync(outPutMP4);
-          }
-          const cmd = `ffmpeg -i "concat:${strConcat}" -acodec copy -vcodec copy -absf aac_adtstoasc ${outPutMP4}`;
-          exec(cmd, (error) => {
-            if (error) {
-              Utils.logError(`ffmpeg mp4 ${index} error: ${error.message}`);
-              doConvert(index);
-            } else {
-              Utils.log(`ffmpeg mp4 ${index} success`);
-              mp4DoneNum++;
-              doConvert(index + 1);
-            }
-          });
+    function doConvert(index, callback) {
+      const outPutMP4 = path.join(dir, "output" + index + ".mp4");
+      const strConcat = toConcat[index].join('|');
+      if (strConcat !== '') {
+        if (fs.existsSync(outPutMP4)) {
+          fs.unlinkSync(outPutMP4);
         }
+        const cmd = `ffmpeg -i "concat:${strConcat}" -acodec copy -vcodec copy -absf aac_adtstoasc ${outPutMP4}`;
+        exec(cmd, (error) => {
+          if (error) {
+            Utils.logError(`ffmpeg mp4 ${index} error: ${error.message}`);
+            callback(index);
+          } else {
+            Utils.log(`ffmpeg mp4 ${index} success`);
+            callback(index, true);
+          }
+        });
       }
     }
 
     function concatMP4() {
       const lastMP4 = path.join(dir, filmName + ".mp4");
-      if (mp4Num > 1) {
+      if (mp4Num >= 1) {
         let filelist = [];
         for (let i = 0; i < mp4Num; i++) {
-          filelist.push(path.join(dir, `output${i}.mp4`));
+          filelist.push("file '" + path.join(dir, `output${i}.mp4`) + "'");
         }
-        let sfiles = filelist.join("|");
-        const cmd = `ffmpeg -i "concat:${sfiles}" -y -c copy ${lastMP4}`;
+        let filePath = path.join(dir, "filelist.txt");
+        fs.writeFileSync(filePath, filelist.join("\n"));
+        const cmd = `ffmpeg -safe 0 -f concat -i ${filePath} -y -c copy ${lastMP4}`;
         exec(cmd, (error) => {
           if (error) {
             Utils.logError(`ffmpeg mp4ALL error: ${error.message}`);
             exit(error);
+          } else {
+            Utils.log('ffmpeg mp4ALL success');
+            deleteTS();
           }
-          Utils.log('ffmpeg mp4ALL success');
-          deleteTS();
         });
       } else {
         fs.rename(path.join(dir, 'output0.mp4'), lastMP4, (err) => {
@@ -247,9 +244,9 @@ class m3u8Downloader {
 
     function deleteTS() {
       try {
-        Rm.sync(path.join(dir, "*.ts"));
+        // Rm.sync(path.join(dir, "*.ts"));
         // Rm.sync(path.join(dir, "output*.mp4"));
-        Rm.sync(path.join(dir, "filelist.txt"));
+        // Rm.sync(path.join(dir, "filelist.txt"));
         Utils.log('@@@success@@@');
         opts.callback();
       } catch (error) {

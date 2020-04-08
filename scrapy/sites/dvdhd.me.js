@@ -9,12 +9,16 @@ const Url = require("url");
 const M3u8Downloader = require("../lib/Downoader/m3u8");
 const Downloader = new M3u8Downloader();
 
-const baseUrl = "https://dvdhd.me/detail/index7013.html"
+// const baseUrl = "https://dvdhd.me/detail/index7013.html"
+const baseUrl = "https://dvdhd.me/detail/index9338.html";
 
 let videoList$ = Rx.Observable.create(cb => {
   Axios.get(baseUrl).then(res => {
     let selDom = Selector.load(res.data);
-    _.map(selDom.css("#video_list_li a").values(), el_str => {
+    let idx = _.findIndex(selDom.css(".ctitle strong").values(), str => /碟影稳线/.test(str));
+    let html = selDom.css(".video_list_li").values()[idx];
+    selDom = Selector.load(html);
+    _.map(selDom.css("a").values(), el_str => {
       let el = Selector.load(el_str);
       cb.next({
         title: el.text(),
@@ -97,4 +101,7 @@ Rx.Observable.create(cb => {
       callback
     })
   };
-}).subscribe(console.log);
+}).subscribe({
+  next: console.log,
+  complete: () => process.exit(0)
+});
